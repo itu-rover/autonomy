@@ -1,0 +1,70 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class navigator : MonoBehaviour {
+	public GameObject explorer;
+	public GameObject Cube;
+	public GameObject Sphere;
+	public bool goCube;
+	public Vector3 targetCoordinates;
+	public Vector3 toTargetCoordinates;
+	public Vector3 sphereCoordinates;
+	public Vector3 cubeCoordinates;
+	public Vector3 NewExpCoordinates;
+	public Vector3 OldExpCoordinates;
+	public Vector3 DeltaExpCoordinates;
+	public float angleInBetween;
+	public float distance;
+	public float gasPedal;
+	// Use this for initialization
+	void Start () {
+		
+
+	}
+	
+	// Update is called once per frame
+	void Update () {//target positions update
+		cubeCoordinates = Cube.GetComponent<Transform> ().position;	
+		sphereCoordinates = Sphere.GetComponent<Transform> ().position;
+		//target changer button
+		if(Input.GetKeyDown(KeyCode.Space)){goCube = !goCube;}
+		//target selector bool
+		if(goCube==true){targetCoordinates=cubeCoordinates;}else{targetCoordinates=sphereCoordinates;}
+		
+		//getting the delta vector
+			NewExpCoordinates = explorer.GetComponent<Transform> ().position;
+		DeltaExpCoordinates = NewExpCoordinates - OldExpCoordinates;
+		OldExpCoordinates = explorer.GetComponent<Transform> ().position;
+		//rotating the rover to the target
+		toTargetCoordinates = targetCoordinates - NewExpCoordinates;
+		//getting rid of all the z values in the vectors
+		toTargetCoordinates.y=0.0F;
+		DeltaExpCoordinates.y=0.0F;
+
+		//angle in between the toTarget and delta Vectors
+		angleInBetween = Vector3.Angle(DeltaExpCoordinates,toTargetCoordinates);
+
+		//finding the sign via cross product
+		angleInBetween = angleInBetween * Mathf.Sign(Vector3.Dot(Vector3.Cross(DeltaExpCoordinates,toTargetCoordinates),new Vector3 (1.0F,1.0F,1.0F)));
+		//sending it to the rover
+		if (distance > 4.0F){//gelmediysek daha dönmeye devam hocam
+		explorer.GetComponent<charcont> ().turn = angleInBetween;}else{//geldik dönmeyi kes hocam 
+			explorer.GetComponent<charcont> ().turn = 0.0F;}
+
+		//determining throttle considering the relative distance and target direction
+		distance= Vector3.Magnitude(toTargetCoordinates);
+
+		//if angle is too much it waits for the turning manuever
+		if (Mathf.Abs(angleInBetween)>70.0F && distance > 4.0F){gasPedal = 0.2F;}//then continues
+		else if (distance > 40.0F) {gasPedal = 1.0F;
+		}
+		else if (distance < 4.0F){//geldik baba dur
+			Debug.Log("DONE!");
+			gasPedal= 0.0F;}
+		else{gasPedal= distance/40.0F;}
+		//moving it transform.forward considering the time interval
+		explorer.GetComponent<charcont> ().throttle = gasPedal;
+	}
+}
+
