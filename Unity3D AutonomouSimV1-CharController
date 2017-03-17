@@ -1,0 +1,54 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class charcont : MonoBehaviour {
+	public float speed = 6.0F;
+	public float jumpSpeed = 8.0F;
+	public float gravity = 20.0F;
+	private Vector3 moveDirection = Vector3.zero;
+	public bool Noise;
+	public float staticNoise;
+	public float movementNoise;
+	public float turnMistakeCoefficient;
+	public float turn;
+	public float throttle;
+	private float turnNoised;
+	void Update() {
+		
+		//reading turn
+		turnNoised = turn;
+		//limiting to the max turn rate
+		if(Mathf.Abs(turnNoised)>30.0F){if(turnNoised<0.0F){turnNoised = -30.0F;} else {turnNoised = 30.0F;}}
+
+		//turn needs some random noise...
+		if (Noise==true){
+
+			//addding static electrical noise Recommended value=10
+		turnNoised += Random.Range(-staticNoise,staticNoise);
+		//noise of turning misconceptions Recommended value=3
+			turnNoised += Random.Range (-turnMistakeCoefficient, turnMistakeCoefficient) * turnNoised;
+		//noise of moving body Recommended value=30
+		turnNoised += Random.Range(-movementNoise,movementNoise)*Input.GetAxis("Vertical");
+		}
+			
+		//rotating considering the time interval...
+		transform.Rotate (0.0F, turnNoised*Time.deltaTime, 0.0F);
+		CharacterController controller = GetComponent<CharacterController>();
+		if (controller.isGrounded) {
+			
+			//moving with axis + throttle
+			moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")+throttle);
+			moveDirection = transform.TransformDirection(moveDirection);
+			moveDirection *= speed;
+			//if (Input.GetButton("Jump"))
+				//moveDirection.y = jumpSpeed;
+
+		}
+		moveDirection.y -= gravity * Time.deltaTime;
+		controller.Move(moveDirection * Time.deltaTime);
+	}
+}
+
+
+	
