@@ -1,0 +1,137 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class Navigator : MonoBehaviour {
+	//navigation here
+	public Vector3 targetCoordinates;
+	public Vector3 toTargetCoordinates;
+	public Vector3 NewExpCoordinates;
+	public Vector3 OldExpCoordinates;
+	public Vector3 DeltaExpCoordinates;
+	public float angleInBetween;
+	public float distance;
+	public float Radius;
+	//gps here
+	private bool GPStry;
+	public GameObject logLabel;
+	public GameObject gpsLabel;
+	private string log;
+	private string gpstext;
+	public double latitude;
+	public double longtitude;
+	public double horizontalAcc;
+	public double altitude;
+	public double timeStamp;
+	private bool updateLocationTry;
+	// Use this for initialization
+	void Start () {
+		log = "App Started";
+
+		//iT iS A SiLLY THiNG TO DO BUT THE CODE REQUiRES THAT
+
+		targetCoordinates.x = 1.0f;
+		toTargetCoordinates.x = 1.0f;
+		NewExpCoordinates.x = 1.0f;
+		OldExpCoordinates.x = 1.0f;
+		DeltaExpCoordinates.x = 1.0f;
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		if(updateLocationTry == false){
+			StartCoroutine(UpdateLocation());}
+
+
+		logLabel.GetComponent<Text>().text = log;
+		gpstext = "Lat: " + latitude.ToString() + "\n" + "Lon: " + longtitude.ToString() + "\n" + "Acc: " + horizontalAcc.ToString() + "\n" + "Alt: " + altitude.ToString() + "\n" + "Time: " + timeStamp.ToString() + "\n" + "Angle: " + angleInBetween.ToString();
+		gpsLabel.GetComponent<Text> ().text = gpstext;
+
+	}
+
+	//this is used to wait between calculations
+	private IEnumerator UpdateLocation() {updateLocationTry = true;
+		yield return new WaitForSeconds(1);
+		//navigation code here
+		targetCoordinates= new Vector3 (1.0F,41.104686F, 29.022858F);
+		DeltaExpCoordinates = Polar2Cartesian (NewExpCoordinates) - Polar2Cartesian (OldExpCoordinates);
+		OldExpCoordinates = NewExpCoordinates;
+		toTargetCoordinates = Polar2Cartesian(targetCoordinates) - Polar2Cartesian(NewExpCoordinates);
+		angleInBetween = Vector3.Angle (DeltaExpCoordinates, toTargetCoordinates) * Mathf.Sign (Vector3.Dot(Vector3.Cross(toTargetCoordinates,DeltaExpCoordinates),Polar2Cartesian(NewExpCoordinates)));
+
+
+
+
+
+		//gps code here
+		if (GPStry == false) {
+			StartCoroutine (GPS ());
+		}
+		updateLocationTry = false;
+		StartCoroutine(UpdateLocation());
+	}
+
+
+
+	//retrieving GPS data
+	private IEnumerator GPS()
+	{GPStry = true;
+		// First, check if user has location service enabled
+		if (!Input.location.isEnabledByUser)
+			log = "Enable GPS";
+			yield break;
+
+		// Start service before querying location
+		Input.location.Start();
+
+		// Wait until service initializes
+		int maxWait = 20;
+		while (Input.location.status == LocationServiceStatus.Initializing && maxWait > 0)
+		{
+			log = "Initializing";
+			yield return new WaitForSeconds(1);
+			maxWait--;
+		}
+
+		// Service didn't initialize in 20 seconds
+		if (maxWait < 1)
+		{
+			log = "Timed out";
+			yield break;
+		}
+
+		// Connection has failed
+		if (Input.location.status == LocationServiceStatus.Failed)
+		{
+			log = "Unable to determine device location";
+			yield break;
+		}
+		else
+		{
+			log = "Success";
+			// Access granted and location value could be retrieved
+
+			latitude = Input.location.lastData.latitude;
+			longtitude = Input.location.lastData.longitude;
+			altitude = Input.location.lastData.altitude;
+			horizontalAcc=Input.location.lastData.horizontalAccuracy;
+			timeStamp = Input.location.lastData.timestamp;
+
+		}
+		GPStry = false;
+	}
+
+	//Polar to cartesian transform function
+	private Vector3 Polar2Cartesian (Vector3 polarvector)
+	{
+		//this is for transforming the polar vector in spherical coordinate system to cartesian coordinate system
+		Vector3 cartvector;
+		cartvector.x = polarvector.x * Mathf.Cos (polarvector.y * Mathf.PI / 180) * Mathf.Cos (polarvector.z * Mathf.PI / 180);
+		cartvector.y = polarvector.x * Mathf.Cos (polarvector.y * Mathf.PI / 180) * Mathf.Sin (polarvector.z * Mathf.PI / 180);
+		cartvector.z = polarvector.x * Mathf.Sin (polarvector.y * Mathf.PI / 180);
+		return cartvector;
+	}
+}
+
+			
