@@ -167,9 +167,6 @@ public class NavigatorDouble : MonoBehaviour {
 
 		}
 
-		/*
-		 here is some comment
-		*/
 
 		GPStry = false;
 	}
