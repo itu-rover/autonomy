@@ -1,0 +1,74 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CrossNavigator : MonoBehaviour
+{
+	//for demo purposes
+	public GameObject explorer;
+	public GameObject target;
+
+	public bool go;
+	public Vector3 targetCoordinates;
+	public Vector3 toTargetCoordinates;
+	public Vector3 DeltaCross;
+	public Vector3 toTargetCross;
+	public Vector3 NewExpCoordinates;
+	public Vector3 OldExpCoordinates;
+	public Vector3 DeltaExpCoordinates;
+	public float angleInBetween;
+	public float distance;
+	public float gasPedal;
+	private float Radius;
+
+	// Use this for initialization
+	void Start ()
+	{
+		
+	}
+	
+	// Update is called once per frame
+	void Update ()
+	{
+		/*
+		 disclaimer: the vectors here are in the form of spherical coordinates like;
+		http://mathworld.wolfram.com/images/eps-gif/SphericalCoordinates_1201.gif only differance is in lat 
+		x=R y=lat z=lon
+		*/
+		//DEMO game purpose transformation
+			NewExpCoordinates.y = explorer.GetComponent<Transform> ().position.z/50.0F;
+			NewExpCoordinates.z = explorer.GetComponent<Transform> ().position.x/50.0F;
+			targetCoordinates.y = target.GetComponent<Transform> ().position.z/50.0F;
+			targetCoordinates.z = target.GetComponent<Transform> ().position.x/50.0F;
+			//navigational calculations
+			DeltaExpCoordinates = Polar2Cartesian (NewExpCoordinates) - Polar2Cartesian (OldExpCoordinates);
+			OldExpCoordinates = NewExpCoordinates;
+			toTargetCoordinates = Polar2Cartesian(targetCoordinates) - Polar2Cartesian(NewExpCoordinates);
+			angleInBetween = Vector3.Angle (DeltaExpCoordinates, toTargetCoordinates) * Mathf.Sign (Vector3.Dot(Vector3.Cross(toTargetCoordinates,DeltaExpCoordinates),Polar2Cartesian(NewExpCoordinates)));
+			//DEMO Control
+				explorer.GetComponent<charcont> ().turn = angleInBetween;
+				explorer.GetComponent<charcont> ().throttle = 1.0F;
+				} 
+
+
+	/*
+	 else {//THiS CODE iS NOT iN WORKiNG CONDiTiON iT SHOULD STAY TO RESEMBLE THE iDEA
+			DeltaExpCoordinates = NewExpCoordinates - OldExpCoordinates;
+			DeltaCross = Vector3.Cross (OldExpCoordinates, NewExpCoordinates);
+			OldExpCoordinates = NewExpCoordinates;
+			toTargetCoordinates = targetCoordinates - NewExpCoordinates;
+			toTargetCross = Vector3.Cross (NewExpCoordinates, toTargetCoordinates); 
+			angleInBetween = Vector3.Angle (DeltaCross, toTargetCross) * Mathf.Sign (Vector3.Dot (DeltaCross, toTargetCross));
+		}
+		*/
+
+	private Vector3 Polar2Cartesian (Vector3 polarvector)
+	{
+		//this is for transforming the polar vector in spherical coordinate system to cartesian coordinate system
+		Vector3 cartvector;
+		cartvector.x = polarvector.x * Mathf.Cos (polarvector.y * Mathf.PI / 180) * Mathf.Cos (polarvector.z * Mathf.PI / 180);
+		cartvector.y = polarvector.x * Mathf.Cos (polarvector.y * Mathf.PI / 180) * Mathf.Sin (polarvector.z * Mathf.PI / 180);
+		cartvector.z = polarvector.x * Mathf.Sin (polarvector.y * Mathf.PI / 180);
+		return cartvector;
+	}
+}
