@@ -1,0 +1,120 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System.IO.Ports;
+using UnityEngine.UI;
+
+public class Parser : MonoBehaviour {
+	//serial comms
+	SerialPort serial = new SerialPort ("COM6",230400);
+	public string dataLine;
+
+	//parsing variables
+	public string[] dataArray;
+	//Locational and calculational variables
+	private double radius = 6371000;
+	public Vector3d currentLocation;
+	public double gpsErr; //gps error is the metric sensitivity of GPS coordinate
+	public Vector3d targetLocation;
+	public double angleInBetween;
+
+	//new target input fields
+	public GameObject latText;
+	public GameObject lonText;
+	//debug text on the screen
+	public GameObject debugText;
+	//is serial busy?
+	private bool serialBusy;
+
+
+
+//	 Use this for initialization
+	 void Start () {
+		serial.Open ();
+		serial.ReadTimeout=1050;
+		serial.NewLine = "\n";
+		serialBusy = false;
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		/*
+		if (serialBusy == false) {
+			serialReader ();
+		}*/
+		serialArrayReader ();
+		extractMyPosition (6,7,8);
+		writeOnScreen ();
+		whereIsTarget ();
+	}
+	public void extractMyPosition (int indexLat,int indexLon, int indexErr){
+		//first arg is index of myLat and second arg is index of my Lon and third arg is the index of sensitivity info in metric
+
+		//acquiring sensitivity error and assigning to a variable
+		string gpsErrStr = dataArray[indexErr];
+		gpsErr = double.Parse(gpsErrStr,System.Globalization.CultureInfo.InvariantCulture);
+
+		//MY coordinates 
+		string latitudeStr= dataArray[indexLat];
+		string longtitudeStr = dataArray[indexLon];
+		//assigning strings to their variables to prepare for calculations
+		double latitude = double.Parse(latitudeStr,System.Globalization.CultureInfo.InvariantCulture);
+		double longtitude = double.Parse(longtitudeStr,System.Globalization.CultureInfo.InvariantCulture);
+		//using the coordinates to form a spherical coordinate vector
+		currentLocation = new Vector3d (radius,latitude,longtitude);
+		}
+
+	public void newTarget(){
+		double targetLat = double.Parse(latText.GetComponent<Text> ().text,System.Globalization.CultureInfo.InvariantCulture);
+		double targetLon = double.Parse(lonText.GetComponent<Text> ().text,System.Globalization.CultureInfo.InvariantCulture);
+		targetLocation = new Vector3d (radius, targetLat, targetLon);
+	}
+
+	public void serialArrayReader(){
+		//open the port if closed
+		if (!serial.IsOpen)
+			serial.Open ();
+		//read it
+		dataLine = serial.ReadLine();
+		//parse it
+		dataArray = dataLine.Split(","[0]);
+	}
+		
+	public void writeOnScreen (){
+		debugText.GetComponent<Text>().text = "My Coord: " + currentLocation.y.ToString () + "," + currentLocation.z.ToString () + 
+			"\r\n" + "Target Coord: " + targetLocation.y.ToString () + "," + targetLocation.z.ToString () + "\r\n" + "Angle: "+angleInBetween;
+	}
+
+	IEnumerator serialReader(){
+		serialBusy = true;
+		//open the port if closed
+		if (!serial.IsOpen)
+			serial.Open ();
+		//read it
+		dataLine = serial.ReadLine();
+		//parse it
+		dataArray = dataLine.Split(","[0]);
+		serialBusy = false;
+		yield return null;
+	}
+
+	public void whereIsTarget(){
+		Vector3d myCross = Vector3d.Cross (Polar2Cartesian (currentLocation), Polar2Cartesian (new Vector3d (radius, 90, 0)));
+		Vector3d toTargetCross = Vector3d.Cross (Polar2Cartesian (currentLocation), Polar2Cartesian (targetLocation)); 
+		//if the angleInBetween is positive then turn clockwise otherwise counterclockwise
+		   
+		angleInBetween = Vector3d.Angle (myCross, toTargetCross) * Mathd.Sign (Vector3d.Dot (Vector3d.Cross (myCross, toTargetCross), currentLocation));
+	
+	}
+
+	//Polar to cartesian transform function
+	private Vector3d Polar2Cartesian (Vector3d polarvector)
+	{
+		//this is for transforming the polar vector in spherical coordinate system to cartesian coordinate system
+		Vector3d cartvector;
+		cartvector.x = polarvector.x * Mathd.Cos (polarvector.y * Mathd.PI / 180) * Mathd.Cos (polarvector.z * Mathd.PI / 180);
+		cartvector.y = polarvector.x * Mathd.Cos (polarvector.y * Mathd.PI / 180) * Mathd.Sin (polarvector.z * Mathd.PI / 180);
+		cartvector.z = polarvector.x * Mathd.Sin (polarvector.y * Mathd.PI / 180);
+		return cartvector;
+	}
+}
